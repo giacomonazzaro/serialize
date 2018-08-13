@@ -15,13 +15,7 @@ void serialize_object(Serializer& srl, Object& var, bool save) {
 }
 
 static bool operator==(const Object& a, const Object& b) {
-    return a.val == b.val and a.i == b.i;
-}
-
-void print(const Object& obj) {
-    printf("name: %s\n", obj.name.c_str());
-    printf("val: %lf\n", obj.val);
-    printf("i: %d\n", obj.i);
+    return a.name == b.name and a.vec == b.vec and a.val == b.val and a.i == b.i;
 }
 
 template <typename Type>
@@ -43,16 +37,16 @@ void read_test(Type& x, const std::string& filename, size_t buffer_capacity) {
 }
 
 int main() {
-    // Let's test the serialization.
-    bool save = true;
     auto filename = "test.bin";
-    size_t buffer_capacity = 3;
     auto object = std::vector<Object>{ {"Hello", {1,2,3,4}, 10.0, 1}, {"World", {7,7,7}, 20.0, 2} };
-    write_test(object, filename, buffer_capacity);
     
-    // Test reading with varius buffer capacities.
-    for (int i = 0; i < 100; ++i)
-        read_test(object, filename, i);
+    // Test serialization with varius combinations of buffer capacity.
+    for (int j = 0; j < 100; ++j) {
+        for (int i = 0; i < 100; ++i) {
+            write_test(object, filename, j);
+            read_test(object, filename, i);
+        }
+    }
 
     printf("Test successful!\n");
 }
