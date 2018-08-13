@@ -17,6 +17,13 @@ struct Serializer {
     size_t buffer_count = 0;
 };
 
+void serialize_error(const std::string& message) {
+    printf("\n*** SERIALIZE ERROR ***\n");
+    printf("message: %s\n", message.c_str());
+    printf("\n");
+    abort();
+}
+
 // write and read function are different from the standard fwrite and fread.
 // This is because a memory buffer is used to miminize disk access.
 void write(Serializer& srl, void* data, size_t size);
@@ -29,28 +36,16 @@ void serialize(Serializer& srl, Type& data, bool save) {
     else      read(srl, &data, sizeof(Type));
 }
 
-void _serialize_error(const Serializer& s, const std::string& message, const char* file, int line) {
-    printf("\n*** SERIALIZER ERROR ***\n");
-    printf("message: %s\n", message.c_str());
-    // printf("   file: %s\n", file);
-    printf("   line: %d\n", line);
-    printf("version: %d\n", s.version);
-    printf("\n");
-    abort();
-}
-
-#define serialize_error(s,m) _serialize_error(s,m, __FILE__, __LINE__)
-
 Serializer make_serializer(const std::string& filename, bool save, size_t buffer_capacity = 0) {
     Serializer srl;
     srl.file = fopen(filename.c_str(), save? "w" : "r");
     if (not srl.file) {
-        if(save) serialize_error(srl, "could not save data into " + filename);
-        else     serialize_error(srl, "could not load data from " + filename);
+        if(save) serialize_error("could not save data into file " + filename);
+        else     serialize_error("could not load data from file " + filename);
     }
 
     srl.buffer = (unsigned char*) malloc(buffer_capacity);
-    if(not srl.buffer) serialize_error(srl, "could not allocate buffer for " + filename);
+    if(not srl.buffer) serialize_error("could not allocate buffer for file " + filename);
     srl.buffer_capacity = buffer_capacity;
     fread(srl.buffer, buffer_capacity, 1, srl.file);
 
@@ -72,11 +67,6 @@ void close_serializer(Serializer& srl) {
 
 
 void write(Serializer& srl, void* data, size_t size) {
-    if(srl.buffer_capacity == 0) {
-        fwrite(data, size, 1, srl.file);
-        return;
-    }
-
     // If data is very big, don't use buffer.
     if(size >= srl.buffer_capacity) {
         fwrite(data, size, 1, srl.file);
@@ -85,7 +75,7 @@ void write(Serializer& srl, void* data, size_t size) {
     
     // If buffer capacity is not enough, dump buffer to file and clear it.
     if(srl.buffer_count + size > srl.buffer_capacity) {
-        fwrite(srl.buffer, srl.buffer_count * sizeof(unsigned char), 1, srl.file);
+        fwrite(srl.buffer, srl.buffer_count, 1, srl.file);
         srl.buffer_count = 0;
     }
 
@@ -96,11 +86,6 @@ void write(Serializer& srl, void* data, size_t size) {
 
 
 void read(Serializer& srl, void* data, size_t size) {
-    if(srl.buffer_capacity == 0) {
-        fread(data, size, 1, srl.file);
-        return;
-    }
-
     // Buffer has not the whole data.
     if(srl.buffer_count + size >= srl.buffer_capacity) {   
         size_t offset = srl.buffer_capacity - srl.buffer_count;
