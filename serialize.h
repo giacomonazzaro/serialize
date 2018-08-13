@@ -17,11 +17,12 @@ struct Serializer {
     size_t buffer_count = 0;
 };
 
-
+// write and read function are different from the standard fwrite and fread.
+// This is because a memory buffer is used to miminize disk access.
 void write(Serializer& srl, void* data, size_t size);
 void read(Serializer& srl, void* data, size_t size);
 
-// Serialize type or struct with no allocated resource
+// Serialize (write or read) struct with no allocated resource
 template <typename Type>
 void serialize(Serializer& srl, Type& data, bool save) {
     if(save) write(srl, &data, sizeof(Type));
