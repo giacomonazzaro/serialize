@@ -1,8 +1,8 @@
 # Serialize
 Header-only library to write and read file data as binary format
 
-# Test
-`test/test.cpp` is an example of the library usage.
+# Example
+`example/example.cpp` shows the usage of the library.
 
-Run the test with `make`.
+Run it with `make`.
 
