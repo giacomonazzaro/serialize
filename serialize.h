@@ -91,12 +91,15 @@ void read(Serializer& srl, void* data, size_t size) {
         size_t offset = srl.buffer_capacity - srl.buffer_count;
         memcpy((unsigned char*)data, srl.buffer + srl.buffer_count, offset);
 
+        // If the rest of data is still too big, dump to file and load new page.
         if(size - offset >= srl.buffer_capacity) {
             fread((unsigned char*)data + offset, size - offset, 1, srl.file);
             fread(srl.buffer, srl.buffer_capacity, 1, srl.file);
             srl.buffer_count = 0;
             return;
         }
+
+        // Load new page.
         fread(srl.buffer, srl.buffer_capacity, 1, srl.file);
         memcpy((unsigned char*)data + offset, srl.buffer, size - offset);
         srl.buffer_count = size - offset;

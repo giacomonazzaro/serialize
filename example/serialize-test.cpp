@@ -19,7 +19,7 @@ static bool operator==(const Object& a, const Object& b) {
 }
 
 template <typename Type>
-void write_test(Type& x, const std::string& filename, size_t buffer_capacity) {
+void test_write(Type& x, const std::string& filename, size_t buffer_capacity) {
     bool save = true;
     auto writer = make_serializer("test.bin", save, 3);
     serialize_vector<Object>(writer, x, save, serialize_object);
@@ -27,7 +27,7 @@ void write_test(Type& x, const std::string& filename, size_t buffer_capacity) {
 }
 
 template <typename Type>
-void read_test(Type& x, const std::string& filename, size_t buffer_capacity) {
+void test_read(Type& x, const std::string& filename, size_t buffer_capacity) {
     bool save = false;
     auto reader = make_serializer(filename, save, buffer_capacity);
     Type y;
@@ -38,13 +38,13 @@ void read_test(Type& x, const std::string& filename, size_t buffer_capacity) {
 
 int main() {
     auto filename = "test.bin";
-    auto object = std::vector<Object>{ {"Hello", {1,2,3,4}, 10.0, 1}, {"World", {7,7,7}, 20.0, 2} };
+    auto objects = std::vector<Object>{ {"Hello", {1,2,3,4}, 10.0, 1}, {"World", {7,7,7}, 20.0, 2} };
     
-    // Test serialization with varius combinations of buffer capacity.
+    // Test serialization with various combinations of buffer capacity.
     for (int j = 0; j < 100; ++j) {
         for (int i = 0; i < 100; ++i) {
-            write_test(object, filename, j);
-            read_test(object, filename, i);
+            test_write(objects, filename, j);
+            test_read(objects, filename, i);
         }
     }
 
