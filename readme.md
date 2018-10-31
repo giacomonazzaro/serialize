@@ -23,10 +23,9 @@ void serialize_object(Serializer& srl, Object& var, bool save) {
 }
 
 int main() {
-    auto filename = "test.bin";
-    auto object = Object{"Hello, World!", {1,2,3,4}, 10.5f, 1}};
     
     // Let's save object into binary format.
+    auto object = Object{"Hello, World!", {1,2,3,4}, 10.5f, 1}};
     auto writer = make_serializer("test.bin", true);
     serialize_object(srl, object, true);
     close_serializer(writer);
