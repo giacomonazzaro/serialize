@@ -27,14 +27,13 @@ int main() {
     // Let's save object into binary format.
     auto object = Object{"Hello, World!", {1,2,3,4}, 10.5f, 1}};
     auto writer = make_serializer("test.bin", true);
-    serialize_object(srl, object, true);
+    serialize_object(writer, object, true);
     close_serializer(writer);
-    
     
     // Now let's reload object from disk.
     Object object_reloaded;
     auto reader = make_serializer("test.bin", false);
-    serialize_object(srl, object_read, false);
+    serialize_object(reader, object_read, false);
     close_serializer(reader);
 
     // We have object == object_reloaded
