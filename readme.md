@@ -13,7 +13,8 @@ struct Object {
     int i;
 };
 
-// Define custom serialize function (easy)
+// Define custom serialize function (easy).
+// This works for both saving and reading, depending on 'save'.
 void serialize_object(Serializer& srl, Object& var, bool save) {
     serialize_string(srl, var.name, save);
     serialize_vector(srl, var.vec, save);
