@@ -38,7 +38,8 @@ Serializer make_serializer(const std::string& filename, bool save, size_t buffer
 
     srl.buffer_capacity = buffer_capacity;
     if(srl.buffer_capacity > 0) {
-        srl.buffer = (unsigned char*) malloc(buffer_capacity);
+        // srl.buffer = (unsigned char*) malloc(buffer_capacity);
+        srl.buffer = new unsigned char[buffer_capacity];
         if(not srl.buffer) serialize_error("could not allocate buffer for file " + filename);
     }
     else
@@ -91,7 +92,7 @@ void refresh_buffer(Serializer& srl) {
 void close_serializer(Serializer& srl) {
     if(srl.buffer) {
         if(srl.save) dump_buffer(srl);
-        free(srl.buffer);
+        delete [] srl.buffer;
         srl.buffer = nullptr;
         srl.buffer_capacity = 0;
         srl.buffer_count = 0;
