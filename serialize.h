@@ -16,6 +16,11 @@ struct Serializer {
     unsigned char* buffer = nullptr;
     size_t buffer_capacity = 0;
     size_t buffer_count = 0;
+
+    ~Serializer() {
+        if(file or buffer)
+            assert(0 && "Close serializer before destruction!");
+    } 
 };
 
 void serialize_error(const std::string& message) {
@@ -25,7 +30,7 @@ void serialize_error(const std::string& message) {
     abort();
 }
 
-Serializer make_serializer(const std::string& filename, bool save, size_t buffer_capacity = 0) {
+Serializer make_serializer(const std::string& filename, bool save, size_t buffer_capacity) {
     Serializer srl;
     srl.file = fopen(filename.c_str(), save? "w" : "r");
     if (not srl.file)
@@ -39,8 +44,8 @@ Serializer make_serializer(const std::string& filename, bool save, size_t buffer
     else
         srl.buffer = nullptr;
 
-    if(save) fwrite(&srl.version, 1, sizeof(int), srl.file);
-    else      fread(&srl.version, 1, sizeof(int), srl.file);
+//    if(save) fwrite(&srl.version, 1, sizeof(int), srl.file);
+//    else      fread(&srl.version, 1, sizeof(int), srl.file);
 
     srl.save = save;
     if(not save)
@@ -49,26 +54,50 @@ Serializer make_serializer(const std::string& filename, bool save, size_t buffer
     return srl;
 }
 
+Serializer make_reader(const std::string& filename, size_t buffer_capacity = 0) {
+    return make_serializer(filename, false, buffer_capacity);
+}
+
+Serializer make_writer(const std::string& filename, size_t buffer_capacity = 0) {
+    return make_serializer(filename, true, buffer_capacity);
+}
+
+
+
+
 void reload_buffer(Serializer& srl) {
     assert(not srl.save);
+    if(srl.buffer_capacity == 0) return;
     fread(srl.buffer, srl.buffer_capacity, 1, srl.file);
     srl.buffer_count = 0;
 }
 
 void dump_buffer(Serializer& srl) {
     assert(srl.save);
+    if(srl.buffer_capacity == 0) return;
     fwrite(srl.buffer, srl.buffer_count, 1, srl.file);
     srl.buffer_count = 0;
 }
 
+void refresh_buffer(Serializer& srl) {
+    if(srl.buffer_capacity == 0) return;
+    assert(srl.buffer_count == srl.buffer_capacity);
+    if(srl.save) fwrite(srl.buffer, srl.buffer_capacity, 1, srl.file);
+    else          fread(srl.buffer, srl.buffer_capacity, 1, srl.file);
+    srl.buffer_count = 0;
+}
+
+
 void close_serializer(Serializer& srl) {
-    if(srl.buffer and srl.save) {
-        dump_buffer(srl);
+    if(srl.buffer) {
+        if(srl.save) dump_buffer(srl);
         free(srl.buffer);
+        srl.buffer = nullptr;
+        srl.buffer_capacity = 0;
+        srl.buffer_count = 0;
     }
     if(srl.file) fclose(srl.file);
-    srl.buffer_capacity = 0;
-    srl.buffer_count = 0;
+    srl.file = nullptr;
 }
 
 
@@ -76,71 +105,108 @@ void close_serializer(Serializer& srl) {
 // write and read function are different from the standard fwrite and fread.
 // A memory buffer is used to miminize disk access.
 
-void write(Serializer& srl, void* data, size_t size) {
-    // If data is very big, don't use buffer.
-    if(size >= srl.buffer_capacity) {
-        fwrite(data, size, 1, srl.file);
-        return;
-    }
-    
-    // If buffer capacity is not enough, dump buffer to file and clear it.
-    if(srl.buffer_count + size > srl.buffer_capacity) {
-        dump_buffer(srl);
-    }
+// void write(Serializer& srl, void* data, size_t size) {
+//     // If buffer capacity is not enough, dump buffer to file and clear it.
+//     if(size >= srl.buffer_capacity - srl.buffer_count) {
+//         int count = srl.buffer_capacity - srl.buffer_count;
+//         memcpy(srl.buffer + srl.buffer_count, data, count);
+//         data = (unsigned char*) data + count;
+//         size -= count;
+//         dump_buffer(srl);
 
-    // Write to buffer.
-    memcpy(srl.buffer + srl.buffer_count, data, size);
+//         // If, the rest is too big, don't use buffer
+//         if(size >= srl.buffer_capacity) {
+//             fwrite(data , size, 1, srl.file);
+//             size = 0;
+//         }
+//     }
+//     if(size == 0) return;
+
+//     memcpy(srl.buffer + srl.buffer_count, data, size);
+//     srl.buffer_count += size;
+// }
+
+
+// void read(Serializer& srl, void* data, size_t size) {
+//     assert(size > 0);
+
+//     // Read from buffer remaining first part of data.
+//     if(size >= srl.buffer_capacity - srl.buffer_count) {
+//         int count = srl.buffer_capacity - srl.buffer_count;
+//         memcpy(data, srl.buffer + srl.buffer_count, count);
+//         data = (unsigned char*) data + count;
+//         size -= count;
+//         reload_buffer(srl);
+
+//         // If, the rest is too big, don't use buffer
+//         if(size >= srl.buffer_capacity) {
+//             fread(data , size, 1, srl.file);
+//             size = 0;
+//         }
+//     }
+//     if(size == 0) return;
+
+//     memcpy(data, srl.buffer + srl.buffer_count, size);
+//     srl.buffer_count += size;
+// }
+
+// void buffer_serialize(void* from, void* to, size_t size, bool save) {
+//     if(size == 0) return;
+//     assert(from);
+//     assert(to);
+    
+//     //void* memcpy(void* destination, const void* source, size_t num);
+//     if(save) memcpy(to, from, size);
+//     else     memcpy(from, to, size);
+// }
+
+void buffer_serialize(Serializer& srl, void* data, size_t size) {
+    if(srl.buffer_capacity == 0) return;
+    if(size == 0) return;
+    assert(size <= srl.buffer_capacity - srl.buffer_count);
+    assert(data);
+
+    //void* memcpy(void* destination, const void* source, size_t num);
+    if(srl.save) memcpy(srl.buffer + srl.buffer_count, data, size);
+    else         memcpy(data, srl.buffer + srl.buffer_count, size);
+    
     srl.buffer_count += size;
 }
 
-
-void read(Serializer& srl, void* data, size_t size) {
+void do_everything(Serializer& srl, void* data, size_t size) {
     assert(size > 0);
-//    if(size >= srl.buffer_capacity) {
-//        fread(data, size, 1, srl.file);
-//        return;
-//    }
-
+    
+    // Complete current buffer if needed.
     if(size >= srl.buffer_capacity - srl.buffer_count) {
-        int count = srl.buffer_capacity - srl.buffer_count;
-        memcpy(data, srl.buffer + srl.buffer_count, count);
-        data = (unsigned char*) data + count;
+        auto count = srl.buffer_capacity - srl.buffer_count;
+        // buffer_serialize(srl.buffer + srl.buffer_count, data, count, srl.save);
+        buffer_serialize(srl, data, count);
+        data = (void*)((unsigned char*) data + count);
         size -= count;
-        if(size > srl.buffer_capacity) {
-            fread(data , size, 1, srl.file);
+        // If, the rest is too big, don't use buffer
+        if(size >= srl.buffer_capacity) {
+            if(srl.save) fwrite(data, size, 1, srl.file);
+            else          fread(data, size, 1, srl.file);
             size = 0;
         }
-        reload_buffer(srl);
+        
+        refresh_buffer(srl);
     }
     if(size == 0) return;
 
-    memcpy(data, srl.buffer + srl.buffer_count, size);
-    srl.buffer_count += size;
+    // memcpy(data, srl.buffer + srl.buffer_count, size);
+    // buffer_serialize(srl.buffer + srl.buffer_count, data, size, srl.save);
+    buffer_serialize(srl, data, size);
 }
 
-void read_(Serializer& srl, void* data, size_t size) {
-    // Buffer has not the whole data.
-    if(srl.buffer_count + size >= srl.buffer_capacity) {   
-        size_t offset = srl.buffer_capacity - srl.buffer_count;
-        memcpy((unsigned char*)data, srl.buffer + srl.buffer_count, offset);
+void read(Serializer& srl, void* data, size_t size) {
+    // fread(data, size, 1, srl.file);
+    do_everything(srl, data, size);
+}
 
-        // If the rest of data is still too big, dump to file and load new page.
-        if(size - offset >= srl.buffer_capacity) {
-            fread((unsigned char*)data + offset, size - offset, 1, srl.file);
-            fread(srl.buffer, srl.buffer_capacity, 1, srl.file);
-            srl.buffer_count = 0;
-            return;
-        }
-
-        // Load new page.
-        fread(srl.buffer, srl.buffer_capacity, 1, srl.file);
-        memcpy((unsigned char*)data + offset, srl.buffer, size - offset);
-        srl.buffer_count = size - offset;
-    }
-    else {
-        memcpy(data, srl.buffer + srl.buffer_count, size);
-        srl.buffer_count += size;
-    }
+void write(Serializer& srl, void* data, size_t size) { 
+    fwrite(data, size, 1, srl.file);
+    // do_everything(srl, data, size);
 }
 
 // Serialize (write or read) struct with no allocated resource
