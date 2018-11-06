@@ -3,14 +3,15 @@
 #include <string>
 #include <functional>
 
-#define SERIALIZER_VERSION 1
+#define SERIALIZER_VERSION 0;
 
 // Serializer holds the information needed to serialize data into file in binary format.
 // To minimize disk access, a memory buffer is used to store temporary result. When full, 
 // the buffer is dumped into file and cleared.
 struct Serializer {
     FILE* file = nullptr;
-    int version = 0;
+    int version = SERIALIZER_VERSION;
+    bool save;
 
     unsigned char* buffer = nullptr;
     size_t buffer_capacity = 0;
@@ -24,40 +25,45 @@ void serialize_error(const std::string& message) {
     abort();
 }
 
-// write and read function are different from the standard fwrite and fread.
-// This is because a memory buffer is used to miminize disk access.
-void write(Serializer& srl, void* data, size_t size);
-void read(Serializer& srl, void* data, size_t size);
-
-// Serialize (write or read) struct with no allocated resource
-template <typename Type>
-void serialize(Serializer& srl, Type& data, bool save) {
-    if(save) write(srl, &data, sizeof(Type));
-    else      read(srl, &data, sizeof(Type));
-}
-
 Serializer make_serializer(const std::string& filename, bool save, size_t buffer_capacity = 0) {
     Serializer srl;
     srl.file = fopen(filename.c_str(), save? "w" : "r");
-    if (not srl.file) {
-        if(save) serialize_error("could not save data into file " + filename);
-        else     serialize_error("could not load data from file " + filename);
-    }
+    if (not srl.file)
+        serialize_error("could not open file " + filename);
 
-    srl.buffer = (unsigned char*) malloc(buffer_capacity);
-    if(not srl.buffer) serialize_error("could not allocate buffer for file " + filename);
     srl.buffer_capacity = buffer_capacity;
-    fread(srl.buffer, buffer_capacity, 1, srl.file);
+    if(srl.buffer_capacity > 0) {
+        srl.buffer = (unsigned char*) malloc(buffer_capacity);
+        if(not srl.buffer) serialize_error("could not allocate buffer for file " + filename);
+    }
+    else
+        srl.buffer = nullptr;
 
-    srl.version = SERIALIZER_VERSION;
-    serialize(srl, srl.version, save);
+    if(save) fwrite(&srl.version, 1, sizeof(int), srl.file);
+    else      fread(&srl.version, 1, sizeof(int), srl.file);
+
+    srl.save = save;
+    if(not save)
+        fread(srl.buffer, srl.buffer_capacity, 1, srl.file);
+
     return srl;
 }
 
+void reload_buffer(Serializer& srl) {
+    assert(not srl.save);
+    fread(srl.buffer, srl.buffer_capacity, 1, srl.file);
+    srl.buffer_count = 0;
+}
+
+void dump_buffer(Serializer& srl) {
+    assert(srl.save);
+    fwrite(srl.buffer, srl.buffer_count, 1, srl.file);
+    srl.buffer_count = 0;
+}
 
 void close_serializer(Serializer& srl) {
-    if(srl.buffer) {
-        fwrite(srl.buffer, srl.buffer_count, sizeof(unsigned char), srl.file);
+    if(srl.buffer and srl.save) {
+        dump_buffer(srl);
         free(srl.buffer);
     }
     if(srl.file) fclose(srl.file);
@@ -65,6 +71,10 @@ void close_serializer(Serializer& srl) {
     srl.buffer_count = 0;
 }
 
+
+
+// write and read function are different from the standard fwrite and fread.
+// A memory buffer is used to miminize disk access.
 
 void write(Serializer& srl, void* data, size_t size) {
     // If data is very big, don't use buffer.
@@ -75,8 +85,7 @@ void write(Serializer& srl, void* data, size_t size) {
     
     // If buffer capacity is not enough, dump buffer to file and clear it.
     if(srl.buffer_count + size > srl.buffer_capacity) {
-        fwrite(srl.buffer, srl.buffer_count, 1, srl.file);
-        srl.buffer_count = 0;
+        dump_buffer(srl);
     }
 
     // Write to buffer.
@@ -86,6 +95,75 @@ void write(Serializer& srl, void* data, size_t size) {
 
 
 void read(Serializer& srl, void* data, size_t size) {
+    assert(size > 0);
+//    if(size >= srl.buffer_capacity) {
+//        fread(data, size, 1, srl.file);
+//        return;
+//    }
+
+    if(size >= srl.buffer_capacity - srl.buffer_count) {
+        int count = srl.buffer_capacity - srl.buffer_count;
+        memcpy(data, srl.buffer + srl.buffer_count, count);
+        data = (unsigned char*) data + count;
+        size -= count;
+        if(size > srl.buffer_capacity) {
+            fread(data , size, 1, srl.file);
+            size = 0;
+        }
+        reload_buffer(srl);
+    }
+    if(size == 0) return;
+
+    memcpy(data, srl.buffer + srl.buffer_count, size);
+    srl.buffer_count += size;
+
+
+
+    // if(size > srl.buffer_capacity - srl.buffer_count) {
+    //     count += srl.buffer_capacity - srl.buffer_count;
+    //     memcpy(data, srl.buffer + srl.buffer_count, count);
+    //     srl.buffer_count += count;
+    // }
+
+    // if(srl.buffer_count == srl.buffer_capacity) 
+    //     reload_buffer(srl);
+    
+    // if(count == size) return;
+
+
+    // // Check if needed data is in buffer.
+    // int count = std::min(size, srl.buffer_capacity - srl.buffer_count);
+    // memcpy(data, srl.buffer + srl.buffer_count, count);
+    // srl.buffer_count += count;
+    // if(srl.buffer_count == srl.buffer_capacity) 
+    //     reload_buffer(srl);
+    
+    // if(count == size) return;
+    // assert(count < size and srl.buffer_count == srl.buffer_capacity);
+
+    // if(size - count >= srl.buffer_capacity)
+    //     fread((unsigned char*)data + count, size - count, 1, srl.file);
+
+
+    // auto destination = (unsigned char*) data + count;
+    // auto source = srl.buffer + srl.buffer_count;
+    // memcpy(destination, source, size - count);
+
+    // while(count < size) {
+    //     if(srl.buffer_count == srl.buffer_capacity) 
+    //         reload_buffer(srl);
+
+        // int chunk = std::min(size, srl.buffer_capacity - srl.buffer_count);
+        // count += chunk;
+        // auto destination = (unsigned char*) data + count;
+        // auto source = srl.buffer + srl.buffer_count;
+        // memcpy(destination, source, chunk);
+    // }
+    // assert(count == size);
+    // srl.buffer_count += size;
+}
+
+void read_(Serializer& srl, void* data, size_t size) {
     // Buffer has not the whole data.
     if(srl.buffer_count + size >= srl.buffer_capacity) {   
         size_t offset = srl.buffer_capacity - srl.buffer_count;
@@ -110,6 +188,12 @@ void read(Serializer& srl, void* data, size_t size) {
     }
 }
 
+// Serialize (write or read) struct with no allocated resource
+template <typename Type>
+void serialize(Serializer& srl, Type& data, bool save) {
+    if(save) write(srl, &data, sizeof(Type));
+    else      read(srl, &data, sizeof(Type));
+}
 
 // Serialize std::vector
 template <typename Type>
@@ -122,6 +206,7 @@ void serialize_vector(Serializer& srl, std::vector<Type>& vec, bool save) {
     }
     else {
         read(srl, &count, sizeof(size_t));
+        assert(count < 10);
         vec = std::vector<Type>(count);
         read(srl, vec.data(), sizeof(Type) * count);
     }
