@@ -7,11 +7,11 @@ struct Object {
     float val;
 };
 
-void serialize_object(Serializer& srl, Object& var, bool save) {
-    serialize(srl, var.i, save);
-    serialize(srl, var.val, save);
-    serialize_string(srl, var.name, save);
-    serialize_vector(srl, var.vec, save);
+void serialize_object(Serializer& srl, Object& var) {
+    serialize(srl, var.i);
+    serialize(srl, var.val);
+    serialize_string(srl, var.name);
+    serialize_vector(srl, var.vec);
 }
 
 void test_serialization(std::string filename, int writer_capacity, int reader_capacity) {
@@ -19,13 +19,13 @@ void test_serialization(std::string filename, int writer_capacity, int reader_ca
     
     // Let's save object into binary a binary file.
     auto writer = make_writer(filename, writer_capacity);
-    serialize_object(writer, object, true);
+    serialize_object(writer, object);
     close_serializer(writer);
 
     // Now, let's reload object from disk.
     Object object_reloaded;
     auto reader = make_reader(filename, reader_capacity);
-    serialize_object(reader, object_reloaded, false);
+    serialize_object(reader, object_reloaded);
     close_serializer(reader);
     
     // Proof that saving/loading works properly.
