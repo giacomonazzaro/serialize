@@ -116,51 +116,6 @@ void read(Serializer& srl, void* data, size_t size) {
 
     memcpy(data, srl.buffer + srl.buffer_count, size);
     srl.buffer_count += size;
-
-
-
-    // if(size > srl.buffer_capacity - srl.buffer_count) {
-    //     count += srl.buffer_capacity - srl.buffer_count;
-    //     memcpy(data, srl.buffer + srl.buffer_count, count);
-    //     srl.buffer_count += count;
-    // }
-
-    // if(srl.buffer_count == srl.buffer_capacity) 
-    //     reload_buffer(srl);
-    
-    // if(count == size) return;
-
-
-    // // Check if needed data is in buffer.
-    // int count = std::min(size, srl.buffer_capacity - srl.buffer_count);
-    // memcpy(data, srl.buffer + srl.buffer_count, count);
-    // srl.buffer_count += count;
-    // if(srl.buffer_count == srl.buffer_capacity) 
-    //     reload_buffer(srl);
-    
-    // if(count == size) return;
-    // assert(count < size and srl.buffer_count == srl.buffer_capacity);
-
-    // if(size - count >= srl.buffer_capacity)
-    //     fread((unsigned char*)data + count, size - count, 1, srl.file);
-
-
-    // auto destination = (unsigned char*) data + count;
-    // auto source = srl.buffer + srl.buffer_count;
-    // memcpy(destination, source, size - count);
-
-    // while(count < size) {
-    //     if(srl.buffer_count == srl.buffer_capacity) 
-    //         reload_buffer(srl);
-
-        // int chunk = std::min(size, srl.buffer_capacity - srl.buffer_count);
-        // count += chunk;
-        // auto destination = (unsigned char*) data + count;
-        // auto source = srl.buffer + srl.buffer_count;
-        // memcpy(destination, source, chunk);
-    // }
-    // assert(count == size);
-    // srl.buffer_count += size;
 }
 
 void read_(Serializer& srl, void* data, size_t size) {
