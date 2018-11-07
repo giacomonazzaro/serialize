@@ -1,7 +1,7 @@
 # Serialize
 
 # Usage
-```
+```C++
 struct Object {
     std::string name;
     std::vector<int> vec;
