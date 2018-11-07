@@ -1,5 +1,5 @@
 # Serialize
-Header-only library to write/read to/from disk in binary format. This is useful to save on disk the state of a program and reload it any other moment.  
+Header-only library to write/read to/from disk in binary format.  
 In order to minimize memory access and maximize performance, a memory buffer is used during serialization. The capacity of the memory buffer is set during initialization.  
 The libray provides the basic tools to easily define the serialization of custom data structures.  
 In particular, `serialize.h` features the following built-in serializtion functions:

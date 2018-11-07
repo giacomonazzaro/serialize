@@ -143,7 +143,7 @@ void serialize_vector(Serializer& srl, std::vector<Type>& vec) {
 
 // Serialize std::vector of structs with custom serialize function
 template <typename Type>
-void serialize_vector(Serializer& srl, std::vector<Type>& vec, std::function<void(Serializer&, Type&)> serialize_obj) {
+void serialize_vector_custom(Serializer& srl, std::vector<Type>& vec, std::function<void(Serializer&, Type&)> serialize_obj) {
     size_t count = vec.size();
     serialize(srl, count);
     if(srl.is_writer) {
