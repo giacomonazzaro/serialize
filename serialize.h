@@ -42,11 +42,11 @@ Serializer private_make_serializer(const std::string& filename, bool save, size_
     return srl;
 }
 
-Serializer make_reader(const std::string& filename, size_t buffer_capacity = 0) {
+Serializer make_reader(const std::string& filename, size_t buffer_capacity) {
     return private_make_serializer(filename, false, buffer_capacity);
 }
 
-Serializer make_writer(const std::string& filename, size_t buffer_capacity = 0) {
+Serializer make_writer(const std::string& filename, size_t buffer_capacity) {
     return private_make_serializer(filename, true, buffer_capacity);
 }
 
@@ -169,4 +169,29 @@ void serialize_string(Serializer& srl, std::string& str) {
         read(srl, (void*)str.data(), sizeof(char) * count);
     }
 }
+
+
+template <typename Type>
+void save_to_file(const std::string& filename, Type& object) {
+    auto writer = make_writer(filename, 0);
+    serialize(writer, object);
+    close_serializer(writer);
+}
+
+template <typename Type>
+void init_from_file(const std::string& filename, Type& object) {
+    auto reader = make_reader(filename, 0);
+    serialize(reader, object);
+    close_serializer(reader);
+}
+
+template <typename Type>
+Type make_from_file(const std::string& filename) {
+    auto reader = make_reader(filename, 0);
+    Type object;
+    serialize(reader, object);
+    close_serializer(reader);
+    return object;
+}
+
 

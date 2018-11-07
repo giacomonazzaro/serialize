@@ -28,7 +28,7 @@ void test_serialization(std::string filename, int writer_capacity, int reader_ca
     serialize_object(reader, object_reloaded);
     close_serializer(reader);
     
-    // Proof that saving/loading works properly.
+    // Test if saving/loading worked properly.
     assert(object.i == object_reloaded.i);
     assert(object.val == object_reloaded.val);
     assert(object.name == object_reloaded.name);
@@ -42,5 +42,5 @@ int main() {
         for (int j = 0; j < 100; j++)
             test_serialization(filename, i, j);
 
-    printf("Test successful!\n");
+    printf("\n    Serialization test successful!\n\n");
 }
