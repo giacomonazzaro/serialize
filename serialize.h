@@ -20,74 +20,42 @@ struct Serializer {
     } 
 };
 
-void serialize_error(const std::string& message) {
-    printf("\n*** SERIALIZE ERROR ***\n");
-    printf("message: %s\n", message.c_str());
-    printf("\n");
-    abort();
-}
 
-Serializer make_serializer(const std::string& filename, bool save, size_t buffer_capacity) {
+Serializer private_make_serializer(const std::string& filename, bool save, size_t buffer_capacity) {
     Serializer srl;
     srl.is_writer = save;
     srl.file = fopen(filename.c_str(), save? "w" : "r");
     if (not srl.file)
-        serialize_error("could not open file " + filename);
+        ("SERIALIZER ERROR: could not open file " + filename);
 
     srl.buffer_capacity = buffer_capacity;
     if(srl.buffer_capacity > 0) {
-        // srl.buffer = (unsigned char*) malloc(buffer_capacity);
         srl.buffer = new unsigned char[buffer_capacity];
-        if(not srl.buffer) serialize_error("could not allocate buffer for file " + filename);
+        if(not srl.buffer) ("SERIALIZER ERROR: could not allocate buffer for file " + filename);
     }
     else
         srl.buffer = nullptr;
 
-    if(not srl.is_writer)
+    if(not srl.is_writer and srl.buffer_capacity > 0)
         fread(srl.buffer, srl.buffer_capacity, 1, srl.file);
 
     return srl;
 }
 
 Serializer make_reader(const std::string& filename, size_t buffer_capacity = 0) {
-    return make_serializer(filename, false, buffer_capacity);
+    return private_make_serializer(filename, false, buffer_capacity);
 }
 
 Serializer make_writer(const std::string& filename, size_t buffer_capacity = 0) {
-    return make_serializer(filename, true, buffer_capacity);
+    return private_make_serializer(filename, true, buffer_capacity);
 }
 
-
-
-
-void reload_buffer(Serializer& srl) {
-    assert(not srl.is_writer);
-    if(srl.buffer_capacity == 0) return;
-    fread(srl.buffer, srl.buffer_capacity, 1, srl.file);
-    srl.buffer_count = 0;
-}
-
-void dump_buffer(Serializer& srl) {
-    assert(srl.is_writer);
-    if(srl.buffer_capacity == 0) return;
-    fwrite(srl.buffer, srl.buffer_count, 1, srl.file);
-    srl.buffer_count = 0;
-}
-
-void refresh_buffer(Serializer& srl) {
-    if(srl.buffer_capacity == 0) return;
-    assert(srl.buffer_count == srl.buffer_capacity);
-    // if(srl.is_writer) fwrite(srl.buffer, srl.buffer_capacity, 1, srl.file);
-    // else          fread(srl.buffer, srl.buffer_capacity, 1, srl.file);
-    if(not srl.is_writer)
-        fread(srl.buffer, srl.buffer_capacity, 1, srl.file);
-    srl.buffer_count = 0;
-}
-
-
+// Release resources.
 void close_serializer(Serializer& srl) {
     if(srl.buffer) {
-        if(srl.is_writer) dump_buffer(srl);
+        if(srl.is_writer)
+            fwrite(srl.buffer, srl.buffer_count, 1, srl.file);
+
         delete [] srl.buffer;
         srl.buffer = nullptr;
         srl.buffer_capacity = 0;
@@ -97,7 +65,7 @@ void close_serializer(Serializer& srl) {
     srl.file = nullptr;
 }
 
-
+// Write/read from/to memory buffer.
 void buffer_serialize(Serializer& srl, void* data, size_t size) {
     if(srl.buffer_capacity == 0) return;
     if(size == 0) return;
@@ -111,10 +79,7 @@ void buffer_serialize(Serializer& srl, void* data, size_t size) {
     srl.buffer_count += size;
 }
 
-void do_everything(Serializer& srl, void* data, size_t size) {
-
-}
-
+// Read using buffer when possible.
 void read(Serializer& srl, void* data, size_t size) {
     // fread(data, size, 1, srl.file);
     assert(size > 0);
@@ -132,13 +97,17 @@ void read(Serializer& srl, void* data, size_t size) {
             else               fread(data, size, 1, srl.file);
             size = 0;
         }
-        
-        refresh_buffer(srl);
+
+        // Refill buffer.
+        assert(srl.buffer_count == srl.buffer_capacity);
+        fread(srl.buffer, srl.buffer_capacity, 1, srl.file);
+        srl.buffer_count = 0;
     }
 
     buffer_serialize(srl, data, size);
 }
 
+// Write using buffer when possible.
 void write(Serializer& srl, void* data, size_t size) { 
     // fwrite(data, size, 1, srl.file);
     assert(size > 0);
@@ -157,7 +126,7 @@ void write(Serializer& srl, void* data, size_t size) {
 template <typename Type>
 void serialize(Serializer& srl, Type& data) {
     if(srl.is_writer) write(srl, &data, sizeof(Type));
-    else      read(srl, &data, sizeof(Type));
+    else               read(srl, &data, sizeof(Type));
 }
 
 // Serialize std::vector
@@ -171,7 +140,6 @@ void serialize_vector(Serializer& srl, std::vector<Type>& vec) {
     }
     else {
         read(srl, &count, sizeof(size_t));
-        assert(count < 10);
         vec = std::vector<Type>(count);
         read(srl, vec.data(), sizeof(Type) * count);
     }

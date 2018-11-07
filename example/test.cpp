@@ -9,14 +9,8 @@ struct Object {
 
 void serialize_object(Serializer& srl, Object& var) {
     serialize(srl, var.i);
-    // fclose(srl.file);
-    // srl.file = fopen("output/test.bin", "a");
     serialize(srl, var.val);
-    // fclose(srl.file);
-    // srl.file = fopen("output/test.bin", "a");
     serialize_string(srl, var.name);
-    // fclose(srl.file);
-    // srl.file = fopen("output/test.bin", "a");
     serialize_vector(srl, var.vec);
 }
 
