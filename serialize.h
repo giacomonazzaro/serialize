@@ -81,7 +81,6 @@ void buffer_serialize(Serializer& srl, void* data, size_t size) {
 
 // Read using buffer when possible.
 void read(Serializer& srl, void* data, size_t size) {
-    // fread(data, size, 1, srl.file);
     assert(size > 0);
     
     // Complete current buffer if needed.
@@ -109,7 +108,6 @@ void read(Serializer& srl, void* data, size_t size) {
 
 // Write using buffer when possible.
 void write(Serializer& srl, void* data, size_t size) { 
-    // fwrite(data, size, 1, srl.file);
     assert(size > 0);
 
     if(size >= srl.buffer_capacity - srl.buffer_count) {
@@ -132,14 +130,12 @@ void serialize(Serializer& srl, Type& data) {
 // Serialize std::vector
 template <typename Type>
 void serialize_vector(Serializer& srl, std::vector<Type>& vec) {
-    size_t count;
+    size_t count = vec.size();
+    serialize(srl, count);
     if(srl.is_writer) {
-        count = vec.size();
-        write(srl, &count, sizeof(size_t));
         write(srl, vec.data(), sizeof(Type) * count);
     }
     else {
-        read(srl, &count, sizeof(size_t));
         vec = std::vector<Type>(count);
         read(srl, vec.data(), sizeof(Type) * count);
     }
@@ -148,15 +144,13 @@ void serialize_vector(Serializer& srl, std::vector<Type>& vec) {
 // Serialize std::vector of structs with custom serialize function
 template <typename Type>
 void serialize_vector(Serializer& srl, std::vector<Type>& vec, std::function<void(Serializer&, Type&)> serialize_obj) {
-    size_t count;
+    size_t count = vec.size();
+    serialize(srl, count);
     if(srl.is_writer) {
-        count = vec.size();
-        write(srl, &count, sizeof(size_t));
         for (int i = 0; i < count; ++i)
             serialize_obj(srl, vec[i]);
     }
     else {
-        read(srl, &count, sizeof(size_t));
         vec = std::vector<Type>(count);
         for (int i = 0; i < count; ++i)
             serialize_obj(srl, vec[i]);
@@ -165,14 +159,12 @@ void serialize_vector(Serializer& srl, std::vector<Type>& vec, std::function<voi
 
 // Serialize std::string
 void serialize_string(Serializer& srl, std::string& str) {
-    size_t count;
+    size_t count = str.size();
+    serialize(srl, count);
     if(srl.is_writer) {
-        count = str.size();
-        serialize(srl, count);
         write(srl, (void*)str.data(), sizeof(char) * count);
     }
     else {
-        serialize(srl, count);
         str = std::string(count, '?');
         read(srl, (void*)str.data(), sizeof(char) * count);
     }
