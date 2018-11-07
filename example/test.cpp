@@ -9,8 +9,14 @@ struct Object {
 
 void serialize_object(Serializer& srl, Object& var) {
     serialize(srl, var.i);
+    // fclose(srl.file);
+    // srl.file = fopen("output/test.bin", "a");
     serialize(srl, var.val);
+    // fclose(srl.file);
+    // srl.file = fopen("output/test.bin", "a");
     serialize_string(srl, var.name);
+    // fclose(srl.file);
+    // srl.file = fopen("output/test.bin", "a");
     serialize_vector(srl, var.vec);
 }
 
@@ -36,10 +42,10 @@ void test_serialization(std::string filename, int writer_capacity, int reader_ca
 }
 
 int main() {
-    auto filename = "output/test.bin";
+    auto filename = "output/object.bin";
 
     for (int i = 0; i < 100; i++)
-       for (int j = 0; j < 100; j++)
+        for (int j = 0; j < 100; j++)
             test_serialization(filename, i, j);
 
     printf("Test successful!\n");
