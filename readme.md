@@ -1,7 +1,7 @@
 # Serialize
-Header-only library to write/read to/from disk in binary format.
-This is useful to save on disk the state of a program and reload it any other moment.
-The libray provide the basic tool to easily define the serialization of custom data structures.
+Header-only library to write/read to/from disk in binary format.  
+This is useful to save on disk the state of a program and reload it any other moment.  
+The libray provide the basic tool to easily define the serialization of custom data structures.  
 
 # Example
 `example/test.cpp` tests the library and shows its usage on a sample data structure.
