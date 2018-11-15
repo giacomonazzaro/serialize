@@ -21,12 +21,14 @@ struct Serializer {
 };
 
 
-Serializer private_make_serializer(const std::string& filename, bool save, size_t buffer_capacity) {
+Serializer make_serializer(const std::string& filename, bool save, size_t buffer_capacity) {
     Serializer srl;
     srl.is_writer = save;
     srl.file = fopen(filename.c_str(), save? "w" : "r");
-    if (not srl.file)
+    if (not srl.file) {
         ("SERIALIZER ERROR: could not open file " + filename);
+        assert(0);
+    }
 
     srl.buffer_capacity = buffer_capacity;
     if(srl.buffer_capacity > 0) {
@@ -43,11 +45,11 @@ Serializer private_make_serializer(const std::string& filename, bool save, size_
 }
 
 Serializer make_reader(const std::string& filename, size_t buffer_capacity) {
-    return private_make_serializer(filename, false, buffer_capacity);
+    return make_serializer(filename, false, buffer_capacity);
 }
 
 Serializer make_writer(const std::string& filename, size_t buffer_capacity) {
-    return private_make_serializer(filename, true, buffer_capacity);
+    return make_serializer(filename, true, buffer_capacity);
 }
 
 // Release resources.
@@ -132,6 +134,7 @@ template <typename Type>
 void serialize_vector(Serializer& srl, std::vector<Type>& vec) {
     size_t count = vec.size();
     serialize(srl, count);
+    if(count == 0) return;
     if(srl.is_writer) {
         write(srl, vec.data(), sizeof(Type) * count);
     }
@@ -142,10 +145,11 @@ void serialize_vector(Serializer& srl, std::vector<Type>& vec) {
 }
 
 // Serialize std::vector of structs with custom serialize function
-template <typename Type>
-void serialize_vector_custom(Serializer& srl, std::vector<Type>& vec, std::function<void(Serializer&, Type&)> serialize_obj) {
+template <typename Type, typename Serialize_func>
+void serialize_vector_custom(Serializer& srl, std::vector<Type>& vec, Serialize_func serialize_obj) {
     size_t count = vec.size();
     serialize(srl, count);
+    if(count == 0) return;
     if(srl.is_writer) {
         for (int i = 0; i < count; ++i)
             serialize_obj(srl, vec[i]);
@@ -161,6 +165,7 @@ void serialize_vector_custom(Serializer& srl, std::vector<Type>& vec, std::funct
 void serialize_string(Serializer& srl, std::string& str) {
     size_t count = str.size();
     serialize(srl, count);
+    if(count == 0) return;
     if(srl.is_writer) {
         write(srl, (void*)str.data(), sizeof(char) * count);
     }
