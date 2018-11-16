@@ -24,16 +24,19 @@ struct Serializer {
 Serializer make_serializer(const std::string& filename, bool save, size_t buffer_capacity) {
     Serializer srl;
     srl.is_writer = save;
-    srl.file = fopen(filename.c_str(), save? "w" : "r");
+    srl.file = fopen(filename.c_str(), save? "w+" : "r");
     if (not srl.file) {
-        ("SERIALIZER ERROR: could not open file " + filename);
+        printf("SERIALIZER ERROR: could not open file %s\n\n", filename.c_str());
         assert(0);
     }
 
     srl.buffer_capacity = buffer_capacity;
     if(srl.buffer_capacity > 0) {
         srl.buffer = new unsigned char[buffer_capacity];
-        if(not srl.buffer) ("SERIALIZER ERROR: could not allocate buffer for file " + filename);
+        if(not srl.buffer) { 
+            printf("SERIALIZER ERROR: could not allocate buffer for file %s\n\n", filename.c_str());
+            assert(0);
+        }
     }
     else
         srl.buffer = nullptr;
