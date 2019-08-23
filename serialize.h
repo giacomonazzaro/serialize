@@ -1,6 +1,5 @@
 #pragma once
 #include <cassert>
-#include <functional>
 #include <string>
 #include <vector>
 
@@ -9,7 +8,8 @@
 // store temporary result.
 
 struct Serializer {
-    FILE* file = nullptr;
+    FILE* file    = nullptr;
+    int   version = 0;
     bool  is_writer;
 
     unsigned char* buffer          = nullptr;
@@ -89,7 +89,9 @@ void buffer_serialize(Serializer& srl, void* data, size_t size) {
 
 // Read using buffer when possible.
 void read(Serializer& srl, void* data, size_t size) {
-    assert(size > 0);
+    // assert(size > 0);
+    assert(data);
+    if (size == 0) return;
 
     // Complete current buffer if needed.
     if (size >= srl.buffer_capacity - srl.buffer_count) {
@@ -98,7 +100,7 @@ void read(Serializer& srl, void* data, size_t size) {
         data = (void*)((unsigned char*)data + count);
         size -= count;
 
-        // If, the rest is too big, don't use buffer
+        // If the rest is too big, don't use buffer
         if (size >= srl.buffer_capacity) {
             if (srl.is_writer)
                 fwrite(data, size, 1, srl.file);
@@ -118,7 +120,9 @@ void read(Serializer& srl, void* data, size_t size) {
 
 // Write using buffer when possible.
 void write(Serializer& srl, void* data, size_t size) {
-    assert(size > 0);
+    // assert(size >
+    assert(data);
+    if (size == 0) return;
 
     if (size >= srl.buffer_capacity - srl.buffer_count) {
         fwrite(srl.buffer, srl.buffer_count, 1, srl.file);
@@ -138,6 +142,18 @@ void serialize(Serializer& srl, Type& data) {
         read(srl, &data, sizeof(Type));
 }
 
+template <typename Container>
+size_t serialize_size(Serializer& srl, Container& vec) {
+    size_t size;
+    if (srl.is_writer) {
+        size = vec.size();
+        serialize(srl, size);
+    } else {
+        serialize(srl, size);
+    }
+    return size;
+}
+
 // Serialize std::vector
 template <typename Type>
 void serialize_vector(Serializer& srl, std::vector<Type>& vec) {
@@ -149,6 +165,20 @@ void serialize_vector(Serializer& srl, std::vector<Type>& vec) {
     } else {
         vec = std::vector<Type>(count);
         read(srl, vec.data(), sizeof(Type) * count);
+    }
+}
+
+// Serialize std::vector
+template <typename Vector>
+void serialize_vector_generic(Serializer& srl, Vector& vec) {
+    size_t count = vec.size();
+    serialize(srl, count);
+    if (count == 0) return;
+    if (srl.is_writer) {
+        write(srl, vec.data(), sizeof(typename Vector::value_type) * count);
+    } else {
+        vec = Vector(count);
+        read(srl, vec.data(), sizeof(typename Vector::value_type) * count);
     }
 }
 
@@ -167,6 +197,38 @@ void serialize_vector_custom(Serializer& srl, std::vector<Type>& vec,
     }
 }
 
+// Serialize std::vector of structs with custom serialize function
+template <typename Type>
+void serialize_vector_custom(Serializer& srl, std::vector<Type>& vec) {
+    size_t count = vec.size();
+    serialize(srl, count);
+    if (count == 0) return;
+    if (srl.is_writer) {
+        for (int i = 0; i < count; ++i) serialize<Type>(srl, vec[i]);
+    } else {
+        vec = std::vector<Type>(count);
+        for (int i = 0; i < count; ++i) serialize<Type>(srl, vec[i]);
+    }
+}
+
+// Serialize std::vector of structs with custom serialize function
+/*template <typename Type>
+template <typename void serialize_obj(Serializer&, Type&)>
+void serialize_vector_custom_(Serializer& srl, std::vector<Type>& vec) {
+    size_t count = vec.size();
+    serialize(srl, count);
+    if(count == 0) return;
+    if(srl.is_writer) {
+        for (int i = 0; i < count; ++i)
+            serialize_obj(srl, vec[i]);
+    }
+    else {
+        vec = std::vector<Type>(count);
+        for (int i = 0; i < count; ++i)
+            serialize_obj(srl, vec[i]);
+    }
+}*/
+
 // Serialize std::string
 void serialize_string(Serializer& srl, std::string& str) {
     size_t count = str.size();
@@ -175,29 +237,31 @@ void serialize_string(Serializer& srl, std::string& str) {
     if (srl.is_writer) {
         write(srl, (void*)str.data(), sizeof(char) * count);
     } else {
-        str = std::string(count, '?');
+        str = std::string(count, ' ');
         read(srl, (void*)str.data(), sizeof(char) * count);
     }
 }
 
 template <typename Type>
-void save_to_file(const std::string& filename, Type& object) {
-    auto writer = make_writer(filename, 0);
-    serialize(writer, object);
+void save_to_file(const std::string& filename, const Type& object,
+                  int buffer_size = 1048576) {
+    auto writer = make_writer(filename, buffer_size);
+    serialize(writer, *(Type*)&object);
     close_serializer(writer);
 }
 
 template <typename Type>
-void init_from_file(const std::string& filename, Type& object) {
-    auto reader = make_reader(filename, 0);
+void load_from_file(const std::string& filename, Type& object,
+                    int buffer_size = 1048576) {
+    auto reader = make_reader(filename, buffer_size);
     serialize(reader, object);
     close_serializer(reader);
 }
 
 template <typename Type>
-Type make_from_file(const std::string& filename) {
-    auto reader = make_reader(filename, 0);
+Type make_from_file(const std::string& filename, int buffer_size = 1048576) {
     Type object;
+    auto reader = make_reader(filename, 0);
     serialize(reader, object);
     close_serializer(reader);
     return object;
