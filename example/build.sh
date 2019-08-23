@@ -1,3 +1,6 @@
+mkdir -p bin
+mkdir -p output
+
 COMPILE="g++ -std=c++1z -O2"
 MAIN=test
 
