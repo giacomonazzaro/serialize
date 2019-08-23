@@ -1,8 +1,8 @@
 # Serialize
 Header-only library for binary serialization of data structures and fast loading and writing of the state of a program.  
+In `serialize.h` are provided the basic tools to easily define the serialization code of custom data structures.  
 In order to minimize disk access, a memory buffer is used during serialization.  
-The libray provides the basic tools to easily define the serialization code of custom data structures.  
-In particular, `serialize.h` features the following built-in serializtion functions:
+The library features the following built-in serializtion functions:
   * `serialize()`: write/read any POD (struct with no allocated resources).
   * `serialize_string()`: write/read a `std::string`.
   * `serialize_vector()`: write/read a `std::vector` of PODs.
