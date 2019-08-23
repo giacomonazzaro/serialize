@@ -1,7 +1,7 @@
 # Serialize
-Header-only library to write/read to/from disk in binary format.  
-In order to minimize memory access and maximize performance, a memory buffer is used during serialization. The capacity of the memory buffer is set during initialization.  
-The libray provides the basic tools to easily define the serialization of custom data structures.  
+Header-only library for binary serialization of data structures and fast loading and writing of the state of a program. 
+In order to minimize disk access, a memory buffer is used during serialization. 
+The libray provides the basic tools to easily define the serialization code of custom data structures.  
 In particular, `serialize.h` features the following built-in serializtion functions:
   * `serialize()`: write/read any POD (struct with no allocated resources).
   * `serialize_string()`: write/read a `std::string`.
@@ -15,6 +15,8 @@ Run it with `make`.
 
 # Usage
 ```C++
+#include "serialize.h"
+
 struct Object {
     std::string name;
     std::vector<int> vec;
