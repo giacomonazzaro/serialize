@@ -9,11 +9,9 @@ The library features the following built-in serializtion functions:
   * `serialize_vector()`: write/read a `std::vector` of structs with custom serialization function.
 
 # Example
-`example/test.cpp` tests the library and shows its usage on a toy data structure.
+In `example/test.cpp` the library is tested, showing its usage on a toy data structure.  
+Build it with `build.sh`.
 
-Run it with `make`.
-
-# Usage
 ```C++
 #include "serialize.h"
 
