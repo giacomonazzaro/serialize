@@ -1,6 +1,6 @@
 # Serialize
-Header-only library for binary serialization of data structures and fast loading and writing of the state of a program.  
-In `serialize.h` are provided the basic tools to easily define the serialization code of custom data structures.  
+Header-only library for binary serialization and deserialization of data structures and fast loading and writing of the state of a program.  
+`serialize.h` provides the basic tools to easily define the serialization code of custom data structures.  
 In order to minimize disk access, a memory buffer is used during serialization.  
 The library features the following built-in serializtion functions:
   * `serialize()`: write/read any POD (struct with no allocated resources).
@@ -30,17 +30,17 @@ void serialize_object(Serializer& srl, Object& var) {
 }
 
 int main() {
-    Object object = Object{"Hello", {1,2,3,4}, 77, 12.0};
+    auto object = Object{"Hello", {1,2,3,4}, 77, 12.0};
     std::string filename = "object.bin";
     int capacity = 64;
     
-    // Let's save object into binary a binary file.
+    // Save object into binary a binary file.
     auto writer = make_writer(filename, capacity);
     serialize_object(writer, object);
     close_serializer(writer);
 
-    // Now, let's reload object from disk.
-    Object object_reloaded;
+    // Reload object from disk.
+    auto object_reloaded = Object{};
     auto reader = make_reader(filename, capacity);
     serialize_object(reader, object_reloaded);
     close_serializer(reader);
