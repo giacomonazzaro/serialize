@@ -22,6 +22,7 @@ struct Object {
     float val;
 };
 
+// Define custom serialization function.
 void serialize_object(Serializer& srl, Object& var) {
     serialize(srl, var.i);
     serialize(srl, var.val);
@@ -30,9 +31,9 @@ void serialize_object(Serializer& srl, Object& var) {
 }
 
 int main() {
-    auto object = Object{"Hello", {1,2,3,4}, 77, 12.0};
-    std::string filename = "object.bin";
-    int capacity = 64;
+    auto object   = Object{"Hello", {1,2,3,4}, 77, 12.0};
+    auto filename = "object.bin"s;
+    int  capacity = 64;
     
     // Save object into binary a binary file.
     auto writer = make_writer(filename, capacity);
