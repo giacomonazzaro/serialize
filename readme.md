@@ -1,5 +1,5 @@
 # Serialize
-Header-only library for binary serialization and deserialization of data structures and fast loading and writing of the state of a program.  
+Header-only library for binary serialization and deserialization of simple data structures, in order to quickly load and/or write of the state of a program.  
 `serialize.h` provides the basic tools to easily define the serialization code of custom data structures.  
 In order to minimize disk access, a memory buffer is used during serialization.  
 The library features the following built-in serializtion functions:
